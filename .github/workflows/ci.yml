@@ -1,0 +1,61 @@
+name: Playwright API CI
+
+on:
+push:
+branches:
+- develop
+
+pull_request:
+branches:
+- main
+- master
+
+workflow_dispatch:
+inputs:
+env:
+description: 'Environment'
+required: true
+default: 'staging'
+
+jobs:
+api-test:
+runs-on: ubuntu-latest
+
+```
+steps:
+  - name: Checkout source code
+    uses: actions/checkout@v5
+
+  - name: Setup NodeJS
+    uses: actions/setup-node@v5
+    with:
+      node-version: '24'
+
+  - name: Install dependencies
+    run: npm ci
+
+  - name: Install Playwright browsers
+    run: npx playwright install --with-deps chromium
+
+  - name: Print selected environment
+    if: github.event_name == 'workflow_dispatch'
+    run: 'echo "Running on env: ${{ inputs.env }}"'
+
+  - name: Run Playwright API Tests
+    run: npx playwright test
+
+  - name: Upload Playwright Report
+    if: always()
+    uses: actions/upload-artifact@v6
+    with:
+      name: playwright-report
+      path: playwright-report/
+
+  - name: Add report link to summary
+    if: always()
+    run: |
+      echo "## 🎭 Playwright Test Report" >> $GITHUB_STEP_SUMMARY
+      echo "" >> $GITHUB_STEP_SUMMARY
+      echo "| Status | Details |" >> $GITHUB_STEP_SUMMARY
+      echo "|--------|---------|" >> $GITHUB_STEP_SUMMARY
+      echo "| ✅ Report | [Download Artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> $GITHUB_STEP_SUMMARY
